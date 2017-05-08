@@ -103,7 +103,18 @@ class Network:
             tf.cast(correct_prediction, tf.float32))
 
         self.sess = tf.Session()
+        self.saver = tf.train.Saver()
+        return self
+
+    def initialize_variables(self):
         self.sess.run(tf.global_variables_initializer())
+        return self
+
+    def save_variables(self, filename):
+        self.saver.save(self.sess, filename)
+
+    def load_variables(self, filename):
+        self.saver.restore(self.sess, filename)
         return self
 
     def train(self, xs, ys):
