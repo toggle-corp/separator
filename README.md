@@ -12,22 +12,30 @@ The example code is contained in `test.py`.
 $ python test.py
 ```
 
-A sample output is as follows:
+We can also train and run the neural network from the
+`separator.py` module.
+
+Following command will save use *input.wav* and *output.wav* files
+for training and save the trained network in the name *test*.
+
+Using same name in future *train* commands will continue the training
+in the same network.
+
+```bash
+$ python separator.py train input.wav output.wav --name test
 ```
-Succesfully created a neural network
-Input file loaded
-Output file loaded
-Training
-Step 0 : accuracy: 0.0
-Step 100 : accuracy: 0.019999999552965164
-Step 200 : accuracy: 0.949999988079071
-Step 300 : accuracy: 0.9799999594688416
-Step 400 : accuracy: 0.019999999552965164
-Step 500 : accuracy: 0.029999999329447746
-Step 600 : accuracy: 0.9999999403953552
-Step 700 : accuracy: 0.9999999403953552
-Step 800 : accuracy: 0.9999999403953552
-Step 900 : accuracy: 0.9999999403953552
-Step 1000 : accuracy: 0.9999999403953552
-...
+
+You can also configure the network parameters.
+
+```bash
+$ python separator.py train input.wav output.wav --name test --batches 100 --samples 100 --iterations 500
 ```
+
+To run the neural network to get output, use the following command.
+
+```bash
+$ python separator.py run input.wav --name test
+$ python separator.py run input.wav --name test --batches 100 --samples 100
+```
+
+The output is saved in *out.wav* file.

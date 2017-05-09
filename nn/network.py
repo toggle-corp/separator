@@ -91,16 +91,21 @@ class Network:
         self.y = self.last
         self.y_ = tf.placeholder(tf.float32, shape)
 
-        cross_entropy = tf.reduce_mean(
-            tf.nn.softmax_cross_entropy_with_logits(
-                logits=self.y, labels=self.y_))
-        self.train_step = tf.train.AdamOptimizer(1e-4)\
-            .minimize(cross_entropy)
+        # cross_entropy = tf.reduce_mean(
+        #     tf.nn.softmax_cross_entropy_with_logits(
+        #         logits=self.y, labels=self.y_))
+        # self.train_step = tf.train.AdamOptimizer(1e-4)\
+        #     .minimize(cross_entropy)
 
-        correct_prediction = tf.equal(
-            tf.argmax(self.y, 1), tf.argmax(self.y_, 1))
-        self.accuracy = tf.reduce_mean(
-            tf.cast(correct_prediction, tf.float32))
+        # correct_prediction = tf.equal(
+        #     tf.argmax(self.y, 1), tf.argmax(self.y_, 1))
+        # self.accuracy = tf.reduce_mean(
+        #     tf.cast(correct_prediction, tf.float32))
+
+        loss = tf.reduce_sum(tf.square(self.y_ - self.y))
+        self.train_step = tf.train.GradientDescentOptimizer(0.1)\
+            .minimize(loss)
+        self.error = tf.reduce_sum(tf.abs(self.y_ - self.y))
 
         self.sess = tf.Session()
         self.saver = tf.train.Saver()
@@ -124,11 +129,18 @@ class Network:
         })
 
     def evaluate(self, xs, ys):
-        """Evaluate the accuracy of neural network
+        """Evaluate the error of neural network
         with given inputs, outputs
         """
-        return self.sess.run(self.accuracy, feed_dict={
+        return self.sess.run(self.error, feed_dict={
             self.x: xs, self.y_: ys, self.keep_prob: 1.0
         })
+
+    def run(self, xs):
+        """Run the network for given set of inputs"""
+        return self.sess.run(self.y, feed_dict={
+            self.x: xs, self.keep_prob: 1.0
+        })
+
 
 # EOF

@@ -76,6 +76,9 @@ class SeparatorNetwork:
         else:
             self.nn.initialize_variables()
 
+    def run(self, xs):
+        return self.nn.run(xs)
+
     def save(self, network_name):
         if not os.path.exists('saved_networks/' + network_name):
             try:
