@@ -11,135 +11,91 @@ def bias_variable(shape):
     return tf.Variable(tf.constant(0.1, shape=shape))
 
 
-def conv2d(x, W):
-    """2d convolution with stride size 1 and zero padding"""
-    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
-
-
-def deconv2d(x, W, output_shape):
-    """Transpose of 2d convolution"""
-    return tf.nn.conv2d_transpose(x, W, output_shape,
-                                  strides=[1, 1, 1, 1])
-
-
-def max_pool(x):
-    """Max pooling over 2x2 blocks"""
-    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
-                          strides=[1, 2, 2, 1], padding='SAME')
-
-
 class Network:
     def __init__(self, input_shape):
         """Create a neural network with given input size"""
         self.x = tf.placeholder(tf.float32, input_shape)
-        self.keep_prob = tf.placeholder(tf.float32)
         self.last = self.x
 
     def add_reshape(self, shape):
-        """Add a reshape layer to reshape data"""
         self.last = tf.reshape(self.last, shape)
         return self
 
-    def add_conv2d(self, filter_height, filter_width,
-                   in_channels, out_channels):
-        """Add a convolutional neural network layer"""
+    def add_conv2d(self, filter_size, in_channels, out_channels,
+                   strides=[1, 1, 1, 1], padding='SAME'):
+        """Add a convolutional layer"""
 
-        W = weight_variable([filter_height, filter_width,
+        W = weight_variable([filter_size, filter_size,
                              in_channels, out_channels])
         b = bias_variable([out_channels])
 
-        self.last = tf.nn.relu(conv2d(self.last, W) + b)
+        self.last = tf.nn.relu(tf.nn.conv2d(
+            self.last, W, strides=strides, padding=padding) + b)
         return self
 
-    def add_maxpool(self):
-        """Add maxpooling layer"""
-        self.last = max_pool(self.last)
-        return self
+    def add_conv2d_transpose(self, filter_size, in_channels,
+                             out_channels, out_shape,
+                             strides=[1, 1, 1, 1], padding='SAME'):
+        """Add a transpose of convolutional layer"""
 
-    def add_dense(self, in_channels, out_channels):
-        """Add a dense neural network layer"""
-        W = weight_variable([in_channels, out_channels])
-        b = bias_variable([out_channels])
-        self.last = tf.nn.relu(tf.matmul(self.last, W) + b)
-        return self
-
-    def add_dropout(self):
-        """Add dropout layer, useful for reducing overfitting
-        in dense layer
-        """
-        self.last = tf.nn.dropout(self.last, self.keep_prob)
-        return self
-
-    def add_inverse_conv2d(self, filter_height, filter_width,
-                           out_channels, in_channels, out_shape):
-        """Add transpose of convolutional layer"""
-
-        W = weight_variable([filter_height, filter_width,
-                             out_channels, in_channels])
+        W = weight_variable([filter_size, filter_size,
+                             in_channels, out_channels])
         b = bias_variable([out_channels])
 
-        self.last = tf.nn.relu(deconv2d(self.last, W, out_shape) + b)
+        self.last = tf.nn.relu(tf.nn.conv2d_transpose(
+            self.last, W, out_shape,
+            strides=strides, padding=padding) + b)
+
+        return self
+
+    def add_max_pool(self, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
+                     padding='SAME'):
+        """Add a max pooling layer"""
+        self.last = tf.nn.max_pool(self.last, ksize, strides, padding)
         return self
 
     def add_resize(self, shape):
-        """Add resizing layer"""
+        """Add a layer to resize input"""
         self.last = tf.image.resize_images(self.last, shape)
         return self
 
-    def add_output(self, shape):
-        """Add layer of given size"""
+    def add_dense(self, in_channels, out_channels):
+        W = weight_variable([in_channels, out_channels])
+        b = bias_variable([out_channels])
+        self.last = tf.nn.relu(tf.matmul(self.last, W) + b)
+
+    def add_output(self, shape, learning_rate=0.01):
+        """Add output layer and complete network"""
         self.y = self.last
         self.y_ = tf.placeholder(tf.float32, shape)
 
-        # cross_entropy = tf.reduce_mean(
-        #     tf.nn.softmax_cross_entropy_with_logits(
-        #         logits=self.y, labels=self.y_))
-        # self.train_step = tf.train.AdamOptimizer(1e-4)\
-        #     .minimize(cross_entropy)
-
-        # correct_prediction = tf.equal(
-        #     tf.argmax(self.y, 1), tf.argmax(self.y_, 1))
-        # self.accuracy = tf.reduce_mean(
-        #     tf.cast(correct_prediction, tf.float32))
-
-        loss = tf.reduce_sum(tf.square(self.y_ - self.y))
-        self.train_step = tf.train.GradientDescentOptimizer(0.1)\
-            .minimize(loss)
-        self.error = tf.reduce_sum(tf.abs(self.y_ - self.y))
+        self.loss = tf.reduce_sum(tf.square(self.y_ - self.y))
+        self.optimizer = tf.train.AdamOptimizer(learning_rate)\
+            .minimize(self.loss)
 
         self.sess = tf.Session()
-        self.saver = tf.train.Saver()
         return self
 
     def initialize_variables(self):
         self.sess.run(tf.global_variables_initializer())
         return self
 
-    def save_variables(self, filename):
-        self.saver.save(self.sess, filename)
-
-    def load_variables(self, filename):
-        self.saver.restore(self.sess, filename)
-        return self
-
     def train(self, xs, ys):
         """Train the neural network with given inputs, outputs"""
-        self.sess.run(self.train_step, feed_dict={
-            self.x: xs, self.y_: ys, self.keep_prob: 0.5
+        self.sess.run(self.optimizer, feed_dict={
+            self.x: xs, self.y_: ys,
         })
 
     def evaluate(self, xs, ys):
-        """Evaluate the error of neural network
-        with given inputs, outputs
-        """
-        return self.sess.run(self.error, feed_dict={
-            self.x: xs, self.y_: ys, self.keep_prob: 1.0
+        """Evaluate loss of network based on given inputs, outputs"""
+        return self.sess.run(self.loss, feed_dict={
+            self.x: xs, self.y_: ys,
         })
 
     def run(self, xs):
-        """Run the network for given set of inputs"""
+        """Run the network for given inputs"""
         return self.sess.run(self.y, feed_dict={
-            self.x: xs, self.keep_prob: 1.0
+            self.x: xs,
         })
 
 
