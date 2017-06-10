@@ -64,6 +64,15 @@ class Network:
         b = bias_variable([out_channels])
         self.last = tf.nn.relu(tf.matmul(self.last, W) + b)
 
+    def add_soft_mask(self, channels):
+        """Compute soft_mask across channels"""
+        summed = tf.reduce_sum(self.last, axis=3, keep_dims=True)
+        tiled_summed = tf.tile(summed, [1, 1, 1, channels])
+
+        # Divide by sum to get soft mask
+        self.last = tf.div(self.last, tiled_summed)
+        return self
+
     def add_output(self, shape, learning_rate=0.01):
         """Add output layer and complete network"""
         self.y = self.last

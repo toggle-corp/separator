@@ -3,8 +3,8 @@ import tensorflow as tf
 
 
 class TestNetwork:
-    def __init__(self, batches, height, width, channels=1, num_outputs=2):
-        nn = Network([batches, height, width, channels])
+    def __init__(self, batches, height, width, num_outputs=2):
+        nn = Network([batches, height, width, 1])
 
         with tf.name_scope('convolutional_1'):
             nn.add_conv2d(3, 1, 10)
@@ -44,12 +44,14 @@ class TestNetwork:
             nn.add_resize([height, width])
             nn.add_conv2d_transpose(
                 3, 1*num_outputs, 10*num_outputs,
-                [batches, height, width, channels*num_outputs])
+                [batches, height, width, num_outputs])
 
-        # nn.last = tf.multiply(nn.x, tf.minimum(nn.last, 1))
+        if num_outputs > 1:
+            with tf.name_scope('soft_mask'):
+                nn.add_soft_mask(num_outputs)
 
         with tf.name_scope('output'):
-            nn.add_output([batches, height, width, channels*num_outputs])
+            nn.add_output([batches, height, width, num_outputs])
 
         self.nn = nn
         self.nn.initialize_variables()

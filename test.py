@@ -22,7 +22,18 @@ batches = 10
 height = stft_in.shape[0]
 width = stft_in.shape[1]
 
-nn = TestNetwork(batches, 100, 100, 1, 1)
+# TODO
+# Set num_outputs to two:
+# nn = TestNetwork(batches, 100, 100, 2)
+#
+# This will require two output files while training, one for each sound source
+# The shape of the output variable will have 2 channels at the last dimension
+# That is shape of ys = [1, height, width, 2]
+#
+# This will then use soft mask at the last layer of the network
+# And the final result will again have 2 channels as the last dimension
+
+nn = TestNetwork(batches, 100, 100, 1)
 
 xs = stft_in
 ys = stft_out
