@@ -3,12 +3,12 @@ import tensorflow as tf
 
 def weight_variable(shape):
     """Create weight variable with noisy initialization"""
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.1))
+    return tf.Variable(tf.truncated_normal(shape, stddev=0.1), name='weight')
 
 
 def bias_variable(shape):
     """Create a bias variable"""
-    return tf.Variable(tf.constant(0.1, shape=shape))
+    return tf.Variable(tf.constant(0.1, shape=shape), name='bias')
 
 
 class Network:
@@ -40,7 +40,7 @@ class Network:
 
         W = weight_variable([filter_size, filter_size,
                              in_channels, out_channels])
-        b = bias_variable([out_channels])
+        b = bias_variable([in_channels])
 
         self.last = tf.nn.relu(tf.nn.conv2d_transpose(
             self.last, W, out_shape,
@@ -97,6 +97,9 @@ class Network:
         return self.sess.run(self.y, feed_dict={
             self.x: xs,
         })
+
+    def log(self, path):
+        tf.summary.FileWriter('log/', self.sess.graph)
 
 
 # EOF

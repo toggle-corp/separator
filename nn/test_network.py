@@ -1,41 +1,55 @@
+from nn.network import Network
 import tensorflow as tf
-from nn.network import Network, weight_variable, bias_variable
 
 
 class TestNetwork:
-    def __init__(self, batches, height, width, channels=1):
+    def __init__(self, batches, height, width, channels=1, num_outputs=2):
         nn = Network([batches, height, width, channels])
 
-        nn.add_conv2d(3, 1, 10)
-        nn.add_max_pool()
+        with tf.name_scope('convolutional_1'):
+            nn.add_conv2d(3, 1, 10)
+            nn.add_max_pool()
 
-        nn.add_conv2d(3, 10, 10)
-        nn.add_max_pool()
+        with tf.name_scope('convolutional_2'):
+            nn.add_conv2d(3, 10, 10)
+            nn.add_max_pool()
 
         height = int(height / 4)
         width = int(width / 4)
 
-        nn.add_reshape([batches, height * width * 10])
-        nn.add_dense(height * width * 10, 256)
+        with tf.name_scope('dense_layer_1'):
+            nn.add_reshape([batches, height * width * 10])
+            nn.add_dense(height * width * 10, 256)
 
-        nn.add_dense(256, height * width * 10)
-        nn.add_reshape([batches, height, width, 10])
+        # From the second dense layer we are going to have
+        # multiple output channels
+
+        with tf.name_scope('dense_layer_2'):
+            nn.add_dense(256, height * width * 10*num_outputs)
+            nn.add_reshape([batches, height, width, 10*num_outputs])
 
         height = height * 2
         width = width * 2
 
-        nn.add_resize([height, width])
-        nn.add_conv2d_transpose(3, 10, 10, [batches, height, width, 10])
+        with tf.name_scope('deconvolutional_2'):
+            nn.add_resize([height, width])
+            nn.add_conv2d_transpose(
+                3, 10*num_outputs, 10*num_outputs,
+                [batches, height, width, 10*num_outputs])
 
         height = height * 2
         width = width * 2
 
-        nn.add_resize([height, width])
-        nn.add_conv2d_transpose(3, 1, 10, [batches, height, width, channels])
+        with tf.name_scope('deconvolutional_1'):
+            nn.add_resize([height, width])
+            nn.add_conv2d_transpose(
+                3, 1*num_outputs, 10*num_outputs,
+                [batches, height, width, channels*num_outputs])
 
         # nn.last = tf.multiply(nn.x, tf.minimum(nn.last, 1))
 
-        nn.add_output([batches, height, width, channels])
+        with tf.name_scope('output'):
+            nn.add_output([batches, height, width, channels*num_outputs])
 
         self.nn = nn
         self.nn.initialize_variables()
@@ -45,6 +59,9 @@ class TestNetwork:
 
     def evaluate(self, xs, ys):
         return self.nn.evaluate(xs, ys)
+
+    def log(self, path):
+        self.nn.log(path)
 
 
 # EOF

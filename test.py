@@ -22,10 +22,16 @@ batches = 10
 height = stft_in.shape[0]
 width = stft_in.shape[1]
 
-nn = TestNetwork(batches, 100, 100)
+nn = TestNetwork(batches, 100, 100, 1, 1)
 
 xs = stft_in
 ys = stft_out
+
+
+# Use
+# tensorboard --logdir=log
+# and go to Graphs tab to visualize
+nn.log('log/')
 
 # xs = xs.reshape([1, height, width, 1])
 # ys = ys.reshape([1, height, width, 1])
@@ -48,6 +54,5 @@ for i in range(10000):
     if i % 100 == 0 or i == 1000 - 1:
         print('Step {:04d} : error: {}'.format(
             i+1, np.sqrt(nn.evaluate(xs, ys))))
-
 
 # EOF
